@@ -23,26 +23,44 @@
 
             var game = new Phaser.Game(config);
 
+            // Indique de combien de pixel la map est décalée (doit venir du serveur)
             const mapOffset = { x: 400, y: 100 };
+            // Indique le nombre de case (doit venir du serveur)
             const nbCases = { x: 20, y: 20 };
+            // Contient les indications de l'existence ou non d'un sol dans une case donnée (doit venir du serveur)
             var groundCases = [];
+            // COntient les objets sol de la scene pour chaque case
             var grounds = [];
+            // Contient les indications de l'existence ou non d'un block dans une case donnée (doit venir du serveur)
             var blockCases = [];
+            // COntient les objets block de la scene pour chaque case
             var blocks = [];
+            // COntient les objets coins de la scene pour chaque case
             var coins = [];
+            // Contient les indications de l'existence ou non d'une piece dans une case donnée (doit venir du serveur)
             var coinCases = [];
 
-            const playerOffset = { x: mapOffset.x, y: mapOffset.y };
+            // L'object de la scene representant le joueur
             var player;
             
+            // Contient les indications de l'existence ou non d'un un enemi dans une case donnée (doit venir du serveur)
             var enemyCases = [];
+            // COntient les objets enemi de la scene pour chaque case
             var enemies = [];
 
+            // Représente le clavier
             var cursors;
+            // Indique le dernier temps de pause de lecture des evenements clavier
             var lastTime;
 
+            // Le score du joueur en cours
             var score = 0;
 
+
+
+
+
+            // Classe personnage
             var Character = new Phaser.Class({
                 Extends: Phaser.GameObjects.Image,
                 initialize: function Character(scene, texture, x, y) {
@@ -63,23 +81,26 @@
                     scene.children.add(this);
                 },
 
+                // Fait correspondre la position grille à la position pixel
                 updatePosition: function (x, y) {
                     x = x - y;
                     y = y / 2 - 0.5;
                     this.setPosition(
-                        playerOffset.x +
+                        mapOffset.x +
                             x * this.size.w -
                             (this.size.w / 2) * x,
-                        playerOffset.y + y * this.size.h + (this.size.h / 4) * x
+                        mapOffset.y + y * this.size.h + (this.size.h / 4) * x
                     );
                 },
 
+                // Met à jour la position en modifiant la case
                 updateCase: function (x, y) {
                     this.currentCase.x = x;
                     this.currentCase.y = y;
                     this.applyMove();
                 },
 
+                // Demande une conversion de position (grille -> pixel)
                 applyMove: function () {
                     if (this.hasCollected(this.currentCase.x, this.currentCase.y)) {
                         this.score = this.score + 1;
@@ -125,6 +146,7 @@
                     }
                 },
 
+                // Modifie la profondeur d'affichage dans le cadre de la superposition isometrique
                 checkDepth: function () {
                     if (
                         this.checkTouch(this.currentCase.x + 1, this.currentCase.y) || 
@@ -139,14 +161,17 @@
                     }
                 },
 
+                // Verifie si le personnage est derrière un autre objet
                 checkTouch: function (x, y) {
                     return this.checkCollide(x, y) || coinCases[y][x] === 1;
                 },
 
+                //Verifie si le personnage a une collision avec un autre
                 checkCollide: function (x, y) {
                     return blockCases[y][x] === 1 || enemyCases[y][x] === 1;
                 },
 
+                // Verifie et collecte une piece
                 hasCollected: function (x, y) {
                     if (coinCases[y][x] === 1) {
                         coinCases[y][x] = 0;
@@ -158,6 +183,7 @@
                 },
             });
 
+            // Classe sol
             var Ground = new Phaser.Class({
                 Extends: Phaser.GameObjects.Image,
                 initialize: function Ground(scene, x, y) {
@@ -184,6 +210,7 @@
                 },
             });
 
+            // CLasse block
             var Block = new Phaser.Class({
                 Extends: Phaser.GameObjects.Image,
                 initialize: function Block(scene, x, y) {
@@ -210,6 +237,7 @@
                 },
             });
 
+            // Classe piece
             var Coin = new Phaser.Class({
                 Extends: Phaser.GameObjects.Image,
                 initialize: function Block(scene, x, y) {
@@ -303,7 +331,6 @@
             }
 
             function hasBlock(x, y) {
-                if (x === 4 && y === 7) return 1;
                 return 0;
             }
 
