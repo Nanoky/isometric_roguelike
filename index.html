@@ -4,7 +4,7 @@
         <meta charset="UTF-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>MultiSnake</title>
+        <title>Bounce revolution</title>
     </head>
     <body>
         <script src="//cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
@@ -27,12 +27,21 @@
             const nbCases = { x: 20, y: 20 };
             var groundCases = [];
             var grounds = [];
+            var blockCases = [];
+            var blocks = [];
+            var coins = [];
+            var coinCases = [];
 
             const playerOffset = { x: mapOffset.x, y: mapOffset.y };
             var player;
+            
+            var enemyCases = [];
+            var enemies = [];
 
             var cursors;
             var lastTime;
+
+            var score = 0;
 
             var Character = new Phaser.Class({
                 Extends: Phaser.GameObjects.Image,
@@ -41,7 +50,8 @@
 
                     this.size = { w: 50, h: 60 };
                     this.currentCase = { x: x, y: y };
-                    this.speed = 10;
+                    this.speed = 13;
+                    this.score = 0;
 
                     this.setTexture(texture);
                     this.updatePosition(this.currentCase.x, this.currentCase.y);
@@ -62,33 +72,50 @@
                     );
                 },
 
+                updateCase: function (x, y) {
+                    this.currentCase.x = x;
+                    this.currentCase.y = y;
+                    this.applyMove();
+                },
+
                 applyMove: function () {
+                    if (this.hasCollected(this.currentCase.x, this.currentCase.y)) {
+                        this.score = this.score + 1;
+                    }
                     this.updatePosition(this.currentCase.x, this.currentCase.y);
                 },
 
                 moveRight: function () {
-                    if (this.currentCase.x < nbCases.x - 1) {
+                    if (this.currentCase.x < nbCases.x - 1 && this.checkCollide(this.currentCase.x + 1, this.currentCase.y)) {
                         this.currentCase.x = this.currentCase.x + 1;
                         this.applyMove();
                     }
                 },
                 moveLeft: function () {
-                    if (this.currentCase.x > 0) {
+                    if (this.currentCase.x > 0  && this.checkCollide(this.currentCase.x - 1, this.currentCase.y)) {
                         this.currentCase.x = this.currentCase.x - 1;
                         this.applyMove();
                     }
                 },
                 moveUp: function () {
-                    if (this.currentCase.y > 0) {
+                    if (this.currentCase.y > 0  && this.checkCollide(this.currentCase.x, this.currentCase.y - 1)) {
                         this.currentCase.y = this.currentCase.y - 1;
                         this.applyMove();
                     }
                 },
                 moveDown: function () {
-                    if (this.currentCase.y < nbCases.y - 1) {
+                    if (this.currentCase.y < nbCases.y - 1 && this.checkCollide(this.currentCase.x, this.currentCase.y + 1)) {
                         this.currentCase.y = this.currentCase.y + 1;
                         this.applyMove();
                     }
+                },
+
+                checkCollide: function (x, y) {
+                    return blockCases[y][x] === 1 || enemyCases[y][x] === 1;
+                },
+
+                hasCollected: function (x, y) {
+                    return coinCases[y][x] === 1;
                 },
             });
 
@@ -116,24 +143,93 @@
                 },
             });
 
+            var Block = new Phaser.Class({
+                Extends: Phaser.GameObjects.Image,
+                initialize: function Block(scene, x, y) {
+                    Phaser.GameObjects.Image.call(this, scene);
+
+                    this.size = { w: 50, h: 60 };
+
+                    this.setTexture("block");
+                    this.updatePosition(x, y);
+                    this.setDisplaySize(this.size.w, this.size.h);
+                    this.setOrigin(0);
+
+                    scene.children.add(this);
+                },
+                updatePosition: function (x, y) {
+                    x = x - y;
+                    y = y / 2 - 0.5;
+                    this.setPosition(
+                        mapOffset.x + x * this.size.w - (this.size.w / 2) * x,
+                        mapOffset.y + y * this.size.h + (this.size.h / 4) * x
+                    );
+                },
+            });
+
+            var Coin = new Phaser.Class({
+                Extends: Phaser.GameObjects.Image,
+                initialize: function Block(scene, x, y) {
+                    Phaser.GameObjects.Image.call(this, scene);
+
+                    this.size = { w: 50, h: 60 };
+
+                    this.setTexture("coin");
+                    this.updatePosition(x, y);
+                    this.setDisplaySize(this.size.w, this.size.h);
+                    this.setOrigin(0);
+
+                    scene.children.add(this);
+                },
+                updatePosition: function (x, y) {
+                    x = x - y;
+                    y = y / 2 - 0.5;
+                    this.setPosition(
+                        mapOffset.x + x * this.size.w - (this.size.w / 2) * x,
+                        mapOffset.y + y * this.size.h + (this.size.h / 4) * x
+                    );
+                },
+            });
+
+
             function preload() {
                 this.load.baseURL = "assets/";
 
                 this.load.image("ground", "images/map/ground.png");
                 this.load.image("circle", "images/characters/circle.png");
+                this.load.image("block", "images/map/snow_ground.png");
+                this.load.image("coin", "images/coins/coin.png");
             }
 
             function create() {
                 for (let index = 0; index < nbCases.y; index++) {
                     groundCases[index] = [];
                     grounds[index] = [];
+
+                    blockCases[index] = [];
+                    blocks[index] = [];
+
+                    coinCases[index] = {};
+                    coins[index] = [];
+
+                    enemyCases[index] = [];
+                    enemies[index] = [];
                     for (let i = 0; i < nbCases.x; i++) {
-                        groundCases[index][i] = 1;
-                        groundCases[index][i] = new Ground(this, i, index);
-                    }
+                        groundCases[index][i] = hasGround(i, index);
+                        grounds[index][i] = groundCases[index][i] === 1 ? new Ground(this, i, index) : null;
+
+                        blockCases[index][i] = hasBlock(i, index);
+                        blocks[index][i] = blockCases[index][i] === 1 ? new Block(this, i, index) : null;
+
+                        coinCases[index][i] = hasCoin(x, y);
+                        coins[index][i] = coinCases[index][i] === 1 ? new Coin(this, i, index) : null;
+
+                        enemyCases[index][i] = hasEnemy(x, y);
+                        enemies[index][i] = enemyCases[index][i] === 1 ? new Character(this, "circle", i, index) : null;
+                    }   
                 }
 
-                player = new Character(this, "circle", 0, 0);
+                player = new Character(this, "circle", Math.ceil(nbCases.x / 2), Math.ceil(nbCases.y / 2));
 
                 cursors = this.input.keyboard.createCursorKeys();
                 lastTime = 0;
@@ -143,7 +239,7 @@
 
             function update(time, delta) {
 
-                if ((time - lastTime) > delta * 10) {
+                if ((time - lastTime) > delta * player.speed) {
                     if (cursors.left.isDown) {
                         player.moveLeft();
                     } else if (cursors.right.isDown) {
@@ -156,6 +252,25 @@
 
                     lastTime = time;
                 }
+            }
+
+            function hasBlock(x, y) {
+
+                return 0;
+            }
+
+            function hasGround(x, y) {
+
+                return 1;
+            }
+
+            function hasCoin(x, y) {
+
+                return 0;
+            }
+
+            function hasEnemy(x, y) {
+                return 0;
             }
         </script>
     </body>
