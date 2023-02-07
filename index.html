@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>MultiSnake</title>
+    </head>
+    <body>
+        <script src="//cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+        <script>
+            var config = {
+                title: "Bounce revolution",
+                type: Phaser.AUTO,
+                width: 800,
+                height: 600,
+                scene: {
+                    preload: preload,
+                    create: create,
+                    update: update,
+                },
+            };
+
+            var game = new Phaser.Game(config);
+
+            const mapOffset = { x: 400, y: 100 };
+            const nbCases = { x: 20, y: 20 };
+            var groundCases = [];
+            var grounds = [];
+
+            const playerOffset = { x: mapOffset.x, y: mapOffset.y };
+            var player;
+
+            var cursors;
+            var lastTime;
+
+            var Character = new Phaser.Class({
+                Extends: Phaser.GameObjects.Image,
+                initialize: function Character(scene, texture, x, y) {
+                    Phaser.GameObjects.Image.call(this, scene);
+
+                    this.size = { w: 50, h: 60 };
+                    this.currentCase = { x: x, y: y };
+                    this.speed = 10;
+
+                    this.setTexture(texture);
+                    this.updatePosition(this.currentCase.x, this.currentCase.y);
+                    this.setDisplaySize(this.size.w, this.size.h);
+                    this.setOrigin(0);
+
+                    scene.children.add(this);
+                },
+
+                updatePosition: function (x, y) {
+                    x = x - y;
+                    y = y / 2 - 0.5;
+                    this.setPosition(
+                        playerOffset.x +
+                            x * this.size.w -
+                            (this.size.w / 2) * x,
+                        playerOffset.y + y * this.size.h + (this.size.h / 4) * x
+                    );
+                },
+
+                applyMove: function () {
+                    this.updatePosition(this.currentCase.x, this.currentCase.y);
+                },
+
+                moveRight: function () {
+                    if (this.currentCase.x < nbCases.x - 1) {
+                        this.currentCase.x = this.currentCase.x + 1;
+                        this.applyMove();
+                    }
+                },
+                moveLeft: function () {
+                    if (this.currentCase.x > 0) {
+                        this.currentCase.x = this.currentCase.x - 1;
+                        this.applyMove();
+                    }
+                },
+                moveUp: function () {
+                    if (this.currentCase.y > 0) {
+                        this.currentCase.y = this.currentCase.y - 1;
+                        this.applyMove();
+                    }
+                },
+                moveDown: function () {
+                    if (this.currentCase.y < nbCases.y - 1) {
+                        this.currentCase.y = this.currentCase.y + 1;
+                        this.applyMove();
+                    }
+                },
+            });
+
+            var Ground = new Phaser.Class({
+                Extends: Phaser.GameObjects.Image,
+                initialize: function Ground(scene, x, y) {
+                    Phaser.GameObjects.Image.call(this, scene);
+
+                    this.size = { w: 50, h: 60 };
+
+                    this.setTexture("ground");
+                    this.updatePosition(x, y);
+                    this.setDisplaySize(this.size.w, this.size.h);
+                    this.setOrigin(0);
+
+                    scene.children.add(this);
+                },
+                updatePosition: function (x, y) {
+                    x = x - y;
+                    y = y / 2;
+                    this.setPosition(
+                        mapOffset.x + x * this.size.w - (this.size.w / 2) * x,
+                        mapOffset.y + y * this.size.h + (this.size.h / 4) * x
+                    );
+                },
+            });
+
+            function preload() {
+                this.load.baseURL = "assets/";
+
+                this.load.image("ground", "images/map/ground.png");
+                this.load.image("circle", "images/characters/circle.png");
+            }
+
+            function create() {
+                for (let index = 0; index < nbCases.y; index++) {
+                    groundCases[index] = [];
+                    grounds[index] = [];
+                    for (let i = 0; i < nbCases.x; i++) {
+                        groundCases[index][i] = 1;
+                        groundCases[index][i] = new Ground(this, i, index);
+                    }
+                }
+
+                player = new Character(this, "circle", 0, 0);
+
+                cursors = this.input.keyboard.createCursorKeys();
+                lastTime = 0;
+
+                this.cameras.main.startFollow(player);
+            }
+
+            function update(time, delta) {
+
+                if ((time - lastTime) > delta * 10) {
+                    if (cursors.left.isDown) {
+                        player.moveLeft();
+                    } else if (cursors.right.isDown) {
+                        player.moveRight();
+                    } else if (cursors.up.isDown) {
+                        player.moveUp();
+                    } else if (cursors.down.isDown) {
+                        player.moveDown();
+                    }
+
+                    lastTime = time;
+                }
+            }
+        </script>
+    </body>
+</html>
